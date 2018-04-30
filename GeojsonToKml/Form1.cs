@@ -16,7 +16,7 @@ namespace GeojsonToKml {
         private int convType = 1;//1:j2k; 2:k2j; 3:j2c; 4:k2j; 5:k2c; 6:c2k
         private bool isLightWconvert = true;
         private string inputFile = "";
-        private string outputFile = "D:/jsonToKmlProjectOutput.txt";
+        private string outputFile = "";//"D:/jsonToKmlProjectOutput.txt";
         public jTokForm () {
             InitializeComponent();
         }
@@ -24,13 +24,42 @@ namespace GeojsonToKml {
         #region 按钮交互部分
         //转换按钮
         private void convertBtn_Click (object sender, EventArgs e) {
-
+            if (inputFile == "") {
+                MessageBox.Show("请选择要转换的文件！", "tips");
+                return;
+            }
+            if (outputFile == "") {
+                MessageBox.Show("请选择要保存的文件路径和文件名！", "tips");
+                return;
+            }
+            switch (convType) {
+                case 1:
+                    geojsonToKml(isLightWconvert);
+                    break;
+                case 2:
+                    kmlToGeojson(isLightWconvert);
+                    break;
+                case 3:
+                    geojsonToCsvPoi();
+                    break;
+                case 4:
+                     csvPoiToGeojson();
+                     break;
+                case 5:
+                     kmlToCsvPoi();
+                     break;
+                case 6:
+                     csvPoiToKml(isLightWconvert);
+                     break;
+                }
+            
+            
             //转换完成后在infolbl显示提示和文件保存位置
         }
         //选择输入文件
         private void inputfBtn_Click (object sender, EventArgs e) {
             OpenFileDialog openFile = new OpenFileDialog();
-            openFile.Filter = "JSON(*.geojson)|*.geojson;|KML(*.kml)|*.kml;|CSV(*.csv)|*.csv";
+            openFile.Filter = "GJSON(*.geojson)|*.geojson;|KML(*.kml)|*.kml;|CSV(*.csv)|*.csv;|JSON(*.json)|*.json";
             openFile.Title = "选择待转文件";
             if (openFile.ShowDialog() == DialogResult.OK) {
                 inputFile = openFile.FileName;
@@ -40,7 +69,7 @@ namespace GeojsonToKml {
         // 选择输出文件
         private void outputBtn_Click (object sender, EventArgs e) {
             SaveFileDialog saveFile = new SaveFileDialog();
-            saveFile.Filter = "JSON(*.geojson)|*.geojson;|KML(*.kml)|*.kml;|CSV(*.csv)|*.csv;|所有文件(*.*)|*.*";
+            saveFile.Filter = "KML(*.kml)|*.kml;|GJSON(*.geojson)|*.geojson;|CSV(*.csv)|*.csv;|所有文件(*.*)|*.*";
             saveFile.Title = "选择保存文件及目录";
             if (saveFile.ShowDialog() == DialogResult.OK) {
                 outputFile = saveFile.FileName;
@@ -52,7 +81,11 @@ namespace GeojsonToKml {
 
         #region 转换实现部分
 
-        private void geojsonToKml () {
+        /// <summary>
+        /// geojson转kml
+        /// </summary>
+        /// <param name="isLight">是否轻量转换，默认true</param>
+        private void geojsonToKml (bool isLight) {
             if (inputFile == "") {
                 inputFile = "E:/ComputerGraphicsProj/Geojson2kml/J2K_data/最简单的json.geojson";
             }
@@ -73,14 +106,9 @@ namespace GeojsonToKml {
             xname.InnerText = "";
             xdesc.InnerText = "";
             XmlElement xdoc = xmlVer.CreateElement("Document");
-            //XmlElement xfder = xmlVer.CreateElement("Folder");
-            //XmlElement xpmk = xmlVer.CreateElement("Placemark");
-            //xpmk.InnerText = "";
             xdoc.AppendChild(xname);
             xdoc.AppendChild(xopen);
             xdoc.AppendChild(xdesc);
-            //XmlElement xw1=new XmlElement()
-            //List<XmlElement> xepmllst = new List<XmlElement>();
 
             List<JToken> jlst = jfts.ToList<JToken>();
             int jlen = jlst.Count;
@@ -97,7 +125,6 @@ namespace GeojsonToKml {
                     xpoi1.AppendChild(xcoord1);
                     xpmk1.AppendChild(xpoi1);
                     xdoc.AppendChild(xpmk1);//不加文件夹封装
-                    //xepmllst.Add(xpmk1);
                 }
                 else if (jt1 == "MultiPoint") {
                     Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();
@@ -188,8 +215,7 @@ namespace GeojsonToKml {
                     Console.Write("there something err");
                 }
             }
-
-
+            
             rootElt.AppendChild(xdoc);
             xmlVer.AppendChild(xd1);
             xmlVer.AppendChild(rootElt);
@@ -198,7 +224,100 @@ namespace GeojsonToKml {
             
         }
 
+        /// <summary>
+        /// kml转geojson
+        /// </summary>
+        /// <param name="isLight">是否轻量转换，默认true</param>
+        private void kmlToGeojson (bool isLight) {
 
+        }
+        
+        /// <summary>
+        /// geojson转csv,只对点要素有效
+        /// </summary>
+        private void geojsonToCsvPoi () {
+            //其他要素不管，如果没有点要素，生成为空
+            StreamReader sr = new StreamReader(inputFile, Encoding.UTF8);
+            JObject o = JObject.Parse(sr.ReadToEnd());
+
+            JToken jfts = o["features"];
+
+            List<JToken> jlst = jfts.ToList<JToken>();
+            int jlen = jlst.Count;
+
+            StreamWriter csvWter = new StreamWriter(outputFile);
+            for (int i = 0; i < jlen; i++) {
+                string jt1 = (string)jlst[i]["geometry"]["type"];
+                if (jt1 == "Point") {
+                    try {
+                        Array poiArr = jlst[i]["geometry"]["coordinates"].ToArray();
+                        csvWter.WriteLine(coordPoint(poiArr));
+                        infoLabel.Text = "geojson to csv 转换完成";//逻辑上不是，但为了不覆盖catch的内容，写在了这里
+                    }
+                    catch (Exception exp) {
+                        infoLabel.Text = exp.Message;
+                    }
+                }else { //
+                }
+            }
+            csvWter.Close();
+            
+        }
+
+        /// <summary>
+        /// csv转geojson的点数据
+        /// </summary>
+        private void csvPoiToGeojson () {
+
+        }
+
+        /// <summary>
+        /// kml转csv,只对点要素有效
+        /// </summary>
+        private void kmlToCsvPoi () {
+            XmlDocument kmlDoc = new XmlDocument();
+            try {
+                kmlDoc.Load(inputFile);
+                XmlElement rootElem = kmlDoc.DocumentElement; //获取根节点 
+                XmlNodeList xpoiNodes = rootElem.GetElementsByTagName("Point"); //获取Point子节点集合 
+                StreamWriter csvWter = new StreamWriter(outputFile);
+                foreach (XmlNode node in xpoiNodes) {
+                    XmlNodeList xcoord = node.ChildNodes;
+                    foreach (XmlNode nd in xcoord) {
+                        if (nd.Name == "coordinates") {
+                            string itxt = nd.InnerText;
+                            csvWter.WriteLine(itxt);
+                        }
+                    }
+                }
+                csvWter.Close();
+                infoLabel.Text = "kml to csv 转换完成";
+            }
+            catch (XmlException xecp) {
+                string xmsg = xecp.Message.Substring(0, 9);
+                if (xmsg == "根级别上的数据无效") {
+                    MessageBox.Show("请确认输入文件为可识别的kml格式！");
+                }
+                else {
+                    infoLabel.Text = xecp.Message;
+                }
+            }
+            catch (Exception exp) {
+                infoLabel.Text = exp.Message;
+            }
+        }
+
+        /// <summary>
+        /// csv转kml的点数据
+        /// </summary>
+        private void csvPoiToKml (bool isLight) {
+            if (isLight) {
+
+            }
+            else {
+
+            }
+        }
 
         #endregion
 
@@ -260,7 +379,6 @@ namespace GeojsonToKml {
 
         //[12.2,134323] ==> "12.2,134323"
         public string coordPoint (Array arr) {
-            string rw = "";
             int arrlen = arr.Length;
             if (arrlen == 2) {
                 return arr.GetValue(0).ToString() + "," + arr.GetValue(1).ToString();
@@ -280,7 +398,6 @@ namespace GeojsonToKml {
             List<string> outlst = new List<string>();
             int arrlen = arrw.Length;
             for (int i = 0; i < arrlen; i++) {
-                string rw = "";
                 JArray arr = (JArray)arrw.GetValue(i);
                 int awlen = arr.Count;
                 if (awlen == 2) {
@@ -296,6 +413,10 @@ namespace GeojsonToKml {
             }
             return outlst;
         }
+
+
+        
+
 
         #endregion
 
