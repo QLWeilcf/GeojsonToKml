@@ -42,11 +42,12 @@
             // 
             // convertBtn
             // 
+            this.convertBtn.Font = new System.Drawing.Font("宋体", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.convertBtn.Location = new System.Drawing.Point(504, 152);
             this.convertBtn.Name = "convertBtn";
             this.convertBtn.Size = new System.Drawing.Size(102, 36);
             this.convertBtn.TabIndex = 0;
-            this.convertBtn.Text = "button1";
+            this.convertBtn.Text = "转换";
             this.convertBtn.UseVisualStyleBackColor = true;
             this.convertBtn.Click += new System.EventHandler(this.convertBtn_Click);
             // 
@@ -84,6 +85,7 @@
             this.inputfBtn.Text = "…";
             this.inputfBtn.TextAlign = System.Drawing.ContentAlignment.BottomLeft;
             this.inputfBtn.UseVisualStyleBackColor = true;
+            this.inputfBtn.Click += new System.EventHandler(this.inputfBtn_Click);
             // 
             // outputBtn
             // 
@@ -94,6 +96,7 @@
             this.outputBtn.Text = "…";
             this.outputBtn.TextAlign = System.Drawing.ContentAlignment.BottomLeft;
             this.outputBtn.UseVisualStyleBackColor = true;
+            this.outputBtn.Click += new System.EventHandler(this.outputBtn_Click);
             // 
             // ouputTBox
             // 
@@ -122,6 +125,7 @@
             this.lightcBox.TabIndex = 8;
             this.lightcBox.Text = "轻量转换";
             this.lightcBox.UseVisualStyleBackColor = true;
+            this.lightcBox.CheckedChanged += new System.EventHandler(this.lightcBox_CheckedChanged);
             // 
             // j2kmlRBtn
             // 
@@ -135,6 +139,7 @@
             this.j2kmlRBtn.TabStop = true;
             this.j2kmlRBtn.Text = "JSON To KML";
             this.j2kmlRBtn.UseVisualStyleBackColor = true;
+            this.j2kmlRBtn.CheckedChanged += new System.EventHandler(this.j2kmlRBtn_CheckedChanged);
             // 
             // k2jsonRBtn
             // 
@@ -146,6 +151,7 @@
             this.k2jsonRBtn.TabIndex = 10;
             this.k2jsonRBtn.Text = "KML To JSON";
             this.k2jsonRBtn.UseVisualStyleBackColor = true;
+            this.k2jsonRBtn.CheckedChanged += new System.EventHandler(this.k2jsonRBtn_CheckedChanged);
             // 
             // c2jsonRBtn
             // 
@@ -157,6 +163,7 @@
             this.c2jsonRBtn.TabIndex = 12;
             this.c2jsonRBtn.Text = "CSV  To JSON";
             this.c2jsonRBtn.UseVisualStyleBackColor = true;
+            this.c2jsonRBtn.CheckedChanged += new System.EventHandler(this.c2jsonRBtn_CheckedChanged);
             // 
             // j2csvRBtn
             // 
@@ -168,6 +175,7 @@
             this.j2csvRBtn.TabIndex = 11;
             this.j2csvRBtn.Text = "JSON To CSV";
             this.j2csvRBtn.UseVisualStyleBackColor = true;
+            this.j2csvRBtn.CheckedChanged += new System.EventHandler(this.j2csvRBtn_CheckedChanged);
             // 
             // c2kmlRBtn
             // 
@@ -179,6 +187,7 @@
             this.c2kmlRBtn.TabIndex = 14;
             this.c2kmlRBtn.Text = "CSV  To  KML";
             this.c2kmlRBtn.UseVisualStyleBackColor = true;
+            this.c2kmlRBtn.CheckedChanged += new System.EventHandler(this.c2kmlRBtn_CheckedChanged);
             // 
             // k2csvRBtn
             // 
@@ -190,6 +199,7 @@
             this.k2csvRBtn.TabIndex = 13;
             this.k2csvRBtn.Text = "KML  To  CSV";
             this.k2csvRBtn.UseVisualStyleBackColor = true;
+            this.k2csvRBtn.CheckedChanged += new System.EventHandler(this.k2csvRBtn_CheckedChanged);
             // 
             // jTokForm
             // 
