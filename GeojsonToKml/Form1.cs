@@ -371,11 +371,7 @@ namespace GeojsonToKml {
                             string spoic=dpoi["coordinates"].InnerText;//轻量版不关注其他要素
                             JProperty jpoint = new JProperty("type", "Point");
                             JProperty jcoor = new JProperty("coordinates",stringPoiToDList(spoic));
-                            JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
-                            JProperty jprop = new JProperty("properties", new JObject());
-                            JObject jzero = new JObject(new JProperty("type", "Feature"), jprop,jgmt);
-
-                            jfeslst.Add(jzero);
+                            jfeslst.Add(createJFea(jpoint,jcoor));
 
                         }//MultiPoint 对应在MultiGeometry里
                         else if (gPmk["LineString"] != null) {
@@ -383,11 +379,7 @@ namespace GeojsonToKml {
                             string spoic = dlnstr["coordinates"].InnerText;//轻量版不关注其他要素
                             JProperty jpoint = new JProperty("type", "LineString");
                             JProperty jcoor = new JProperty("coordinates", strTodbLst(spoic));
-                            JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
-                            JProperty jprop = new JProperty("properties", new JObject());
-                            JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
-
-                            jfeslst.Add(jzero);
+                            jfeslst.Add(createJFea(jpoint, jcoor));
                         }//MultiLineString在MultiGeometry里
                         else if (gPmk["Polygon"] != null) {
                             //kml中的Polygon对应的geojson里的Polygon只会是1个Polygon，也即[[[1.1,2],[1.2,2]]]
@@ -408,11 +400,7 @@ namespace GeojsonToKml {
                             
                             JProperty jpoint = new JProperty("type", "Polygon");
                             JProperty jcoor = new JProperty("coordinates",jpolys);
-                            JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
-                            JProperty jprop = new JProperty("properties", new JObject());
-                            JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
-
-                            jfeslst.Add(jzero);
+                            jfeslst.Add(createJFea(jpoint, jcoor));
                             
                         }
                         else if (gPmk["MultiGeometry"] != null) {
@@ -447,10 +435,7 @@ namespace GeojsonToKml {
                                 }
                                 JProperty jpoint = new JProperty("type", "MultiLineString");
                                 JProperty jcoor = new JProperty("coordinates",wtoline);
-                                JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
-                                JProperty jprop = new JProperty("properties", new JObject());
-                                JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
-                                jfeslst.Add(jzero);
+                                jfeslst.Add(createJFea(jpoint, jcoor));
                             }
                             if (dmpoly.Count != 0) { // MultiPolygon
                                 JArray wtriline = new JArray();//四维的了
@@ -469,11 +454,7 @@ namespace GeojsonToKml {
                                 }
                                 JProperty jpoint = new JProperty("type", "MultiPolygon");
                                 JProperty jcoor = new JProperty("coordinates", wtriline);
-                                JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
-                                JProperty jprop = new JProperty("properties", new JObject());
-                                JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
-                                
-                                jfeslst.Add(jzero);
+                                jfeslst.Add(createJFea(jpoint, jcoor));
                             }
                             
                         }
@@ -501,11 +482,7 @@ namespace GeojsonToKml {
                             string spoic = dpoi["coordinates"].InnerText;//轻量版不关注其他要素
                             JProperty jpoint = new JProperty("type", "Point");
                             JProperty jcoor = new JProperty("coordinates", stringPoiToDList(spoic));
-                            JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
-                            JProperty jprop = new JProperty("properties", new JObject());
-                            JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
-
-                            jfeslst.Add(jzero);
+                            jfeslst.Add(createJFea(jpoint, jcoor));
 
                         }//MultiPoint 对应在MultiGeometry里
                         else if (gPmk["LineString"] != null) {
@@ -513,11 +490,7 @@ namespace GeojsonToKml {
                             string spoic = dlnstr["coordinates"].InnerText;//轻量版不关注其他要素
                             JProperty jpoint = new JProperty("type", "LineString");
                             JProperty jcoor = new JProperty("coordinates", strTodbLst(spoic));
-                            JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
-                            JProperty jprop = new JProperty("properties", new JObject());
-                            JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
-
-                            jfeslst.Add(jzero);
+                            jfeslst.Add(createJFea(jpoint, jcoor));
                         }//MultiLineString在MultiGeometry里
                         else if (gPmk["Polygon"] != null) {
                             //kml中的Polygon对应的geojson里的Polygon只会是1个Polygon，也即[[[1.1,2],[1.2,2]]]
@@ -538,11 +511,7 @@ namespace GeojsonToKml {
 
                             JProperty jpoint = new JProperty("type", "Polygon");
                             JProperty jcoor = new JProperty("coordinates", jpolys);
-                            JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
-                            JProperty jprop = new JProperty("properties", new JObject());
-                            JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
-
-                            jfeslst.Add(jzero);
+                            jfeslst.Add(createJFea(jpoint, jcoor));
 
                         }
                         else if (gPmk["MultiGeometry"] != null) {
@@ -577,10 +546,7 @@ namespace GeojsonToKml {
                                 }
                                 JProperty jpoint = new JProperty("type", "MultiLineString");
                                 JProperty jcoor = new JProperty("coordinates", wtoline);
-                                JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
-                                JProperty jprop = new JProperty("properties", new JObject());
-                                JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
-                                jfeslst.Add(jzero);
+                                jfeslst.Add(createJFea(jpoint, jcoor));
                             }
                             if (dmpoly.Count != 0) { // MultiPolygon
                                 JArray wtriline = new JArray();//四维的了
@@ -599,11 +565,7 @@ namespace GeojsonToKml {
                                 }
                                 JProperty jpoint = new JProperty("type", "MultiPolygon");
                                 JProperty jcoor = new JProperty("coordinates", wtriline);
-                                JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
-                                JProperty jprop = new JProperty("properties", new JObject());
-                                JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
-
-                                jfeslst.Add(jzero);
+                                jfeslst.Add(createJFea(jpoint, jcoor));
                             }
 
                         }
@@ -903,18 +865,6 @@ namespace GeojsonToKml {
             
         }
 
-        //105.60,30.6 107.9,31.9 ==> [[105.60,30.6],[107.9,31.9]]
-        public double[][] strTodbLst2 (string coor) {
-            string[] clst = coor.Split(' ');
-
-            int clen = clst.Length;
-            double[][] dtlst = new double[clen][];
-            for(int j = 0; j < clen; j++) {
-                double[] cw = stringPoiToDList(clst[j]);
-                dtlst[j] = cw;
-            }
-            return dtlst;
-        }
         /// <summary>
         /// 字符串点序列变2维数组
         /// </summary>
@@ -923,41 +873,29 @@ namespace GeojsonToKml {
         public JArray strTodbLst (string coor) {
             JArray ja = new JArray();
             string[] clst = coor.Trim().Split(' ');//在这里写Trim比在调用的时候每一次调用都写更好
-
-            int clen = clst.Length;
-            double[][] dtlst = new double[clen][];
-            for (int j = 0; j < clen; j++) {
+            for (int j = 0; j < clst.Length; j++) {
                 double[] cw = stringPoiToDList(clst[j]);
-                dtlst[j] = cw;
-                JArray j2 = new JArray(cw);
-                ja.Add(j2);
+                ja.Add(new JArray(cw));
             }
             return ja;
         }
 
-        /// <summary>
-        /// 字符串点序列变3维数组
-        /// </summary>
-        /// <param name="coor">输入点序列，形如"105.6,30.6 107,31.9"</param>
-        /// <returns>三维JArray，形如[[[105.6,30.6],[107,31.9]]]</returns>
+        // 字符串点序列变3维数组，目前没用了
         //105.60,30.6 107.9,31.9 ==> [[[105.60,30.6],[107.9,31.9]]]
         public JArray strToTribLst (string coor) {
-            string[] clst = coor.Split(' ');
-            int clen = clst.Length;
-            double[][][] trilst = new double[clen][][];
-            trilst[0] = strTodbLst2(coor);
-            var cs = trilst;
             return new JArray();
         }
 
-        public double[][][] strToTribLst2 (string coor) {
-            string[] clst = coor.Split(' ');
-            int clen = clst.Length;
-            double[][][] trilst = new double[clen][][];
-            trilst[0] = strTodbLst2(coor);
-            var cs = trilst;
-            return trilst;
+
+        // 传入jpoi和jcoor生成一个JFeature k2j用
+        public JObject createJFea (JProperty jpoint, JProperty jcoor) {
+            JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
+            JProperty jprop = new JProperty("properties", new JObject());
+            return new JObject(new JProperty("type", "Feature"), jprop, jgmt); ;
         }
+
+
+
 
 
         #endregion
@@ -966,7 +904,8 @@ namespace GeojsonToKml {
         private void j2kmlRBtn_CheckedChanged (object sender, EventArgs e) {
             if (j2kmlRBtn.Checked) {
                 convType = 1;
-                //iFTypeIndex = 0; oFTypeIndex=0;
+                iFTypeIndex = 0;
+                oFTypeIndex =0;//默认情况
             }
         }
 
@@ -1019,7 +958,7 @@ namespace GeojsonToKml {
             }
         }
         private void inputTBox_TextChanged (object sender, EventArgs e) {
-            inputFile = inputTBox.Text;
+            inputFile = inputTBox.Text;//输入文件框内容改变时
         }
         private void ouputTBox_TextChanged (object sender, EventArgs e) {
             outputFile = ouputTBox.Text;
