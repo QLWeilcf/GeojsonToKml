@@ -365,7 +365,7 @@ namespace GeojsonToKml {
                     
                     List<JObject> jfeslst = new List<JObject>();
 
-                    foreach (XmlNode gPmk in xpmklst) {
+                    foreach (XmlNode gPmk in xpmklst) {//对每个Placemark节点进行遍历
                         if (gPmk["Point"] != null) {
                             XmlElement dpoi = gPmk["Point"];
                             string spoic=dpoi["coordinates"].InnerText;//轻量版不关注其他要素

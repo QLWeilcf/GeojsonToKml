@@ -56,9 +56,9 @@
             this.infoLabel.AutoSize = true;
             this.infoLabel.Location = new System.Drawing.Point(1, 383);
             this.infoLabel.Name = "infoLabel";
-            this.infoLabel.Size = new System.Drawing.Size(299, 12);
+            this.infoLabel.Size = new System.Drawing.Size(263, 12);
             this.infoLabel.TabIndex = 1;
-            this.infoLabel.Text = "1,选择待转换文件；2,选择转换方式；3,点击转换按钮.";
+            this.infoLabel.Text = "选择待转换文件；选择转换方式；点击转换按钮.";
             // 
             // inlabelt
             // 
