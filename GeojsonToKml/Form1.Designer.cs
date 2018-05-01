@@ -75,6 +75,7 @@
             this.inputTBox.Name = "inputTBox";
             this.inputTBox.Size = new System.Drawing.Size(483, 21);
             this.inputTBox.TabIndex = 3;
+            this.inputTBox.TextChanged += new System.EventHandler(this.inputTBox_TextChanged);
             // 
             // inputfBtn
             // 
@@ -104,6 +105,7 @@
             this.ouputTBox.Name = "ouputTBox";
             this.ouputTBox.Size = new System.Drawing.Size(483, 21);
             this.ouputTBox.TabIndex = 6;
+            this.ouputTBox.TextChanged += new System.EventHandler(this.ouputTBox_TextChanged);
             // 
             // outlabelt
             // 
