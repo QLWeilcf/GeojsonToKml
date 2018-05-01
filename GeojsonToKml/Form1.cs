@@ -17,6 +17,11 @@ namespace GeojsonToKml {
         private bool isLightWconvert = true;
         private string inputFile = "";
         private string outputFile = "";//"D:/jsonToKmlProjectOutput.txt";
+        private string[] infType = { "GJSON(*.geojson) | *.geojson;|KML (*.kml)|*.kml;|CSV (*.csv)|*.csv;|JSON (*.json)|*.json", "KML(*.kml)|*.kml;|CSV(*.csv)|*.csv;|GJSON(*.geojson)|*.geojson;|JSON(*.json)|*.json", "CSV(*.csv)|*.csv;|KML(*.kml)|*.kml;|GJSON(*.geojson)|*.geojson;|JSON(*.json)|*.json" };
+        //j   k     c  ;output: k  j   c
+        private string[] outfType = { "KML(*.kml)|*.kml;|GJSON(*.geojson)|*.geojson;|CSV(*.csv)|*.csv;|所有文件(*.*)|*.*", "GJSON(*.geojson)|*.geojson;|KML(*.kml)|*.kml;|CSV(*.csv)|*.csv;|所有文件(*.*)|*.*", "CSV(*.csv)|*.csv;|KML(*.kml)|*.kml;|GJSON(*.geojson)|*.geojson;|所有文件(*.*)|*.*" };
+        private int iFTypeIndex = 0;
+        private int oFTypeIndex = 0;
         public jTokForm () {
             InitializeComponent();
         }
@@ -59,7 +64,7 @@ namespace GeojsonToKml {
         //选择输入文件
         private void inputfBtn_Click (object sender, EventArgs e) {
             OpenFileDialog openFile = new OpenFileDialog();
-            openFile.Filter = "GJSON(*.geojson)|*.geojson;|KML(*.kml)|*.kml;|CSV(*.csv)|*.csv;|JSON(*.json)|*.json";
+            openFile.Filter = infType[iFTypeIndex];
             openFile.Title = "选择待转文件";
             if (openFile.ShowDialog() == DialogResult.OK) {
                 inputFile = openFile.FileName;
@@ -69,7 +74,7 @@ namespace GeojsonToKml {
         // 选择输出文件
         private void outputBtn_Click (object sender, EventArgs e) {
             SaveFileDialog saveFile = new SaveFileDialog();
-            saveFile.Filter = "KML(*.kml)|*.kml;|GJSON(*.geojson)|*.geojson;|CSV(*.csv)|*.csv;|所有文件(*.*)|*.*";
+            saveFile.Filter = outfType[oFTypeIndex];
             saveFile.Title = "选择保存文件及目录";
             if (saveFile.ShowDialog() == DialogResult.OK) {
                 outputFile = saveFile.FileName;
@@ -231,7 +236,144 @@ namespace GeojsonToKml {
         /// </summary>
         /// <param name="isLight">是否轻量转换，默认true</param>
         private void kmlToGeojson (bool isLight) {
+            if (isLight) {//两种方式：直接构建json or 统一转到xml做中转
+                try {
+                    XmlDocument kmlDToG = new XmlDocument();
+                    kmlDToG.Load(inputFile);
+                    XmlNodeList xpmklst=kmlDToG.GetElementsByTagName("Placemark");//轻量化情况下从Placemark节点开始遍历
+                    int pmklen = xpmklst.Count;
+                    
+                    List<JObject> jfeslst = new List<JObject>();
 
+                    foreach (XmlNode gPmk in xpmklst) {
+                        if (gPmk["Point"] != null) {
+                            XmlElement dpoi = gPmk["Point"];
+                            string spoic=dpoi["coordinates"].InnerText;//轻量版不关注其他要素
+                            JProperty jpoint = new JProperty("type", "Point");
+                            JProperty jcoor = new JProperty("coordinates",stringPoiToDList(spoic));
+                            JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
+                            JProperty jprop = new JProperty("properties", new JObject());
+                            JObject jzero = new JObject(new JProperty("type", "Feature"), jprop,jgmt);
+
+                            jfeslst.Add(jzero);
+
+                        }//MultiPoint 对应在MultiGeometry里
+                        else if (gPmk["LineString"] != null) {
+                            XmlElement dlnstr = gPmk["LineString"];
+                            string spoic = dlnstr["coordinates"].InnerText;//轻量版不关注其他要素
+                            JProperty jpoint = new JProperty("type", "LineString");
+                            JProperty jcoor = new JProperty("coordinates", strTodbLst(spoic));
+                            JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
+                            JProperty jprop = new JProperty("properties", new JObject());
+                            JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
+
+                            jfeslst.Add(jzero);
+                        }//MultiLineString在MultiGeometry里
+                        else if (gPmk["Polygon"] != null) {
+                            //kml中的Polygon对应的geojson里的Polygon只会是1个Polygon，也即[[[1.1,2],[1.2,2]]]
+                            //这一类，不会是[[[1.1,2],[1.2,2]],[[1.1,2],[1.2,2]]],
+                            //这个会对应到kml里的MultiGeometry
+                            //收回上面的话。
+                            
+                            XmlElement dpoly = gPmk["Polygon"];
+                            JArray jpolys = new JArray();
+                            foreach (XmlNode bndary in dpoly.GetElementsByTagName("outerBoundaryIs")) {
+                                string spnc = bndary["LinearRing"]["coordinates"].InnerText; //注意不是LineString
+                                jpolys.Add(strTodbLst(spnc));//二维的JArray 加到jpolys里
+                            }
+                            foreach (XmlNode bndary in dpoly.GetElementsByTagName("innerBoundaryIs")) {
+                                string spinc = bndary["LinearRing"]["coordinates"].InnerText;
+                                jpolys.Add(strTodbLst(spinc));
+                            }
+                            
+                            JProperty jpoint = new JProperty("type", "Polygon");
+                            JProperty jcoor = new JProperty("coordinates",jpolys);
+                            JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
+                            JProperty jprop = new JProperty("properties", new JObject());
+                            JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
+
+                            jfeslst.Add(jzero);
+                            
+                        }
+                        else if (gPmk["MultiGeometry"] != null) {
+                            //geojson里面是分multi点/线/面的，但kml里的MultiGeometry是可以既有点又有线又有面
+                            //k转j时需要拆为多个，（没有无损的解决方案吧）
+                            XmlElement dmgeom = gPmk["MultiGeometry"];
+                            XmlNodeList dmlst = gPmk["MultiGeometry"].ChildNodes;
+
+                            foreach (XmlNode dmnode in dmlst) {
+
+                                if (dmnode["Point"] != null) { //MultiPoint
+                                    XmlElement dpoi = gPmk["Point"];
+                                    string spoic = dpoi["coordinates"].InnerText;//轻量版不关注其他要素
+                                    JProperty jpoint = new JProperty("type", "MultiPoint");
+                                    JProperty jcoor = new JProperty("coordinates", stringPoiToDList(spoic));
+                                    JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
+                                    JProperty jprop = new JProperty("properties", new JObject());
+                                    JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
+
+                                    jfeslst.Add(jzero);
+
+                                }
+                                else if (dmnode["LineString"] != null) {//MultiLineString
+                                    XmlElement dlnstr = gPmk["LineString"];
+                                    string spoic = dlnstr["coordinates"].InnerText;//轻量版不关注其他要素
+                                    JProperty jpoint = new JProperty("type", "MultiLineString");
+                                    JProperty jcoor = new JProperty("coordinates", strTodbLst(spoic));
+                                    JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
+                                    JProperty jprop = new JProperty("properties", new JObject());
+                                    JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
+
+                                    jfeslst.Add(jzero);
+                                }
+                                else if (dmnode["Polygon"] != null) { // MultiPolygon
+                                    XmlElement dpoly = gPmk["Polygon"];
+                                    JArray jpolys = new JArray();
+                                    foreach (XmlNode bndary in dpoly.GetElementsByTagName("outerBoundaryIs")) {
+                                        string spnc = bndary["LinearRing"]["coordinates"].InnerText; //注意不是LineString
+                                        jpolys.Add(strTodbLst(spnc));//二维的JArray 加到jpolys里
+                                    }
+                                    foreach (XmlNode bndary in dpoly.GetElementsByTagName("innerBoundaryIs")) {
+                                        string spinc = bndary["LinearRing"]["coordinates"].InnerText;
+                                        jpolys.Add(strTodbLst(spinc));
+                                    }
+                                    JProperty jpoint = new JProperty("type", "MultiPolygon");
+                                    JProperty jcoor = new JProperty("coordinates", jpolys);
+                                    JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
+                                    JProperty jprop = new JProperty("properties", new JObject());
+                                    JObject jzero = new JObject(new JProperty("type", "Feature"), jprop, jgmt);
+
+                                    jfeslst.Add(jzero);
+
+                                }
+                            }
+
+
+                        }
+
+                    }
+                    
+                    JProperty jfs = new JProperty("features", jfeslst);
+
+                    JObject jcsv = new JObject(new JProperty("type", "FeatureCollection"), jfs);
+                    File.WriteAllText(outputFile, jcsv.ToString());
+                    infoLabel.Text = "kml转geojson完成!";
+                }catch (XmlException xecp) {
+                    string xmsg = xecp.Message.Substring(0, 9);
+                    if (xmsg == "根级别上的数据无效") {
+                        MessageBox.Show("请确认输入文件为可识别的kml格式！并检查文件非空");
+                    }
+                    else {
+                        infoLabel.Text = xecp.Message;
+                    }
+                }
+                catch (Exception expt) {
+                    infoLabel.Text = expt.Message;
+                }
+            }
+            else{
+
+            }
         }
         
         /// <summary>
@@ -270,7 +412,38 @@ namespace GeojsonToKml {
         /// csv转geojson的点数据
         /// </summary>
         private void csvPoiToGeojson () {
+            try {
+                StreamReader csvRder = new StreamReader(inputFile,Encoding.UTF8);
+                string csvall = csvRder.ReadToEnd();//读入csv文件
+                string[] csvlst = csvall.Split('\n');
+                List<JObject> jfeslst = new List<JObject>();
+                for (int j = 0; j < csvlst.Length; j++) {
+                    if (csvlst[j] == "" && j == 0) {
+                        infoLabel.Text = "输入csv文件为空,请确认输入文件后重试";
+                        return; //如果是空文件
+                    }
+                    if (csvlst[j] != "") {//排除空行
+                        double[] dlst = stringPoiToDList(csvlst[j]);
+                        if (dlst.Length == 5 && dlst[0] == 0d)
+                            return;
+                        JProperty jcoord = new JProperty("coordinates",dlst);
+                        JProperty jtpoi = new JProperty("type", "Point");
 
+                        JProperty jgomtry =new JProperty("geometry", new JObject(jtpoi, jcoord));
+                        JProperty jprots = new JProperty("properties",new JObject());
+                        JObject jtfea = new JObject(new JProperty("type", "Feature"),jprots,jgomtry);
+                        jfeslst.Add(jtfea);
+                    }
+                }
+                JProperty jfs = new JProperty("features", jfeslst);
+
+                JObject jcsv = new JObject(new JProperty("type", "FeatureCollection"), jfs);
+                File.WriteAllText(outputFile, jcsv.ToString());
+                infoLabel.Text = "csv 转geojson完成!";
+            }
+            catch( Exception expt) {
+                infoLabel.Text = expt.Message;
+            }
         }
 
         /// <summary>
@@ -320,7 +493,7 @@ namespace GeojsonToKml {
                 XmlElement kdoc = kmlMeta.CreateElement("Document");
                 
                 try {
-                    StreamReader csvRder = new StreamReader(inputFile);
+                    StreamReader csvRder = new StreamReader(inputFile, Encoding.UTF8);
 
                     string csvall = csvRder.ReadToEnd();
                     string[] csvlst = csvall.Split('\n');
@@ -447,9 +620,93 @@ namespace GeojsonToKml {
             }
             return outlst;
         }
+        /// <summary>
+        /// 字符序列转浮点数数组,转geojson用
+        /// </summary>
+        /// <param name="pcsv">输入字符串，形如"119.2,39.41"</param>
+        /// <returns></returns>
+        public double[] stringPoiToDList (string pcsv) {
+            int dlen = 2;
+            try {//调用该函数之前先把pcsv的合法性判断好;如输入为空，在主函数return
+                string[] pclst = pcsv.Split(',');
+                dlen = pclst.Length;
+                double[] stlst = new double[dlen];
+                for (int j = 0; j < dlen; j++) {
+                    stlst[j] = Convert.ToDouble(pclst[j]);
+                }
+                return stlst;
+            }
+            catch (FormatException fexp) {
+                    MessageBox.Show("请确认输入的文件类型合法!(" + fexp.Message + ")");
+                infoLabel.Text = "请确认输入的文件类型合法!";
+                return new double[5] { 0, 0,0,0,0 };
+            }catch (Exception exp) {
+                infoLabel.Text = exp.Message;
+                return new double[5] { 0, 0, 0, 0, 0 };//这一步有一定的隐患
+            }
+            
+        }
+        /// <summary>
+        /// 字符串点序列变2维数组
+        /// </summary>
+        /// <param name="coor">输入点序列，形如"105.6,30.6 107,31.9"</param>
+        /// <returns>二维浮点数组，形如[[105.60,30.6],[107.9,31.9]]</returns>
+        //105.60,30.6 107.9,31.9 ==> [[105.60,30.6],[107.9,31.9]]
+        public double[][] strTodbLst2 (string coor) {
+            string[] clst = coor.Split(' ');
 
+            int clen = clst.Length;
+            double[][] dtlst = new double[clen][];
+            for(int j = 0; j < clen; j++) {
+                double[] cw = stringPoiToDList(clst[j]);
+                dtlst[j] = cw;
+            }
+            var ct = dtlst;
+            return dtlst;
+        }
+        /// <summary>
+        /// 字符串点序列变2维数组
+        /// </summary>
+        /// <param name="coor">输入点序列，形如"105.6,30.6 107,31.9"</param>
+        /// <returns>二维JArray，形如[[105.60,30.6],[107.9,31.9]]</returns>
+        public JArray strTodbLst (string coor) {
+            JArray ja = new JArray();
+            string[] clst = coor.Split(' ');
 
-        
+            int clen = clst.Length;
+            double[][] dtlst = new double[clen][];
+            for (int j = 0; j < clen; j++) {
+                double[] cw = stringPoiToDList(clst[j]);
+                dtlst[j] = cw;
+                JArray j2 = new JArray(cw);
+                ja.Add(j2);
+            }
+            return ja;
+        }
+
+        /// <summary>
+        /// 字符串点序列变3维数组
+        /// </summary>
+        /// <param name="coor">输入点序列，形如"105.6,30.6 107,31.9"</param>
+        /// <returns>三维JArray，形如[[[105.6,30.6],[107,31.9]]]</returns>
+        //105.60,30.6 107.9,31.9 ==> [[[105.60,30.6],[107.9,31.9]]]
+        public JArray strToTribLst (string coor) {
+            string[] clst = coor.Split(' ');
+            int clen = clst.Length;
+            double[][][] trilst = new double[clen][][];
+            trilst[0] = strTodbLst2(coor);
+            var cs = trilst;
+            return new JArray();
+        }
+
+        public double[][][] strToTribLst2 (string coor) {
+            string[] clst = coor.Split(' ');
+            int clen = clst.Length;
+            double[][][] trilst = new double[clen][][];
+            trilst[0] = strTodbLst2(coor);
+            var cs = trilst;
+            return trilst;
+        }
 
 
         #endregion
@@ -459,36 +716,47 @@ namespace GeojsonToKml {
         private void j2kmlRBtn_CheckedChanged (object sender, EventArgs e) {
             if (j2kmlRBtn.Checked) {
                 convType = 1;
+                //iFTypeIndex = 0; oFTypeIndex=0;
             }
         }
 
         private void k2jsonRBtn_CheckedChanged (object sender, EventArgs e) {
             if (k2jsonRBtn.Checked) {
                 convType = 2;
+                iFTypeIndex = 1;
+                oFTypeIndex = 1;
             }
         }
 
         private void j2csvRBtn_CheckedChanged (object sender, EventArgs e) {
             if (j2csvRBtn.Checked) {
                 convType = 3;
+                iFTypeIndex = 0;
+                oFTypeIndex = 2;
             }
         }
 
         private void c2jsonRBtn_CheckedChanged (object sender, EventArgs e) {
             if (c2jsonRBtn.Checked) {
                 convType = 4;
+                iFTypeIndex = 2;
+                oFTypeIndex = 1;
             }
         }
 
         private void k2csvRBtn_CheckedChanged (object sender, EventArgs e) {
             if (k2csvRBtn.Checked) {
                 convType = 5;
+                iFTypeIndex = 1;
+                oFTypeIndex = 2;
             }
         }
 
         private void c2kmlRBtn_CheckedChanged (object sender, EventArgs e) {
             if (c2kmlRBtn.Checked) {
                 convType = 6;
+                iFTypeIndex = 2;
+                oFTypeIndex = 0;
             }
         }
 

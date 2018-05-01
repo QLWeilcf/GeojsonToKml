@@ -225,7 +225,7 @@
             this.Controls.Add(this.convertBtn);
             this.MaximizeBox = false;
             this.Name = "jTokForm";
-            this.Text = "Form1";
+            this.Text = "JCKconvert";
             this.ResumeLayout(false);
             this.PerformLayout();
 
