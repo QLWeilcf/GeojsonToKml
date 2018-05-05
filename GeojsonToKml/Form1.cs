@@ -90,263 +90,270 @@ namespace GeojsonToKml {
         /// </summary>
         /// <param name="isLight">是否轻量转换，默认true</param>
         private void geojsonToKml (bool isLight) {
-            StreamReader sr = new StreamReader(inputFile, Encoding.UTF8);
-            JObject o = JObject.Parse(sr.ReadToEnd());
+            try {
+                StreamReader sr = new StreamReader(inputFile, Encoding.UTF8);
+                JObject o = JObject.Parse(sr.ReadToEnd());
+                JToken jfts = o["features"];
+                XmlDocument xmlVer = new XmlDocument();
+                XmlDeclaration xd1 = xmlVer.CreateXmlDeclaration("1.0", "UTF-8", null);//这一句还是必须有的
+                XmlElement rootElt = xmlVer.CreateElement("kml", "http://www.opengis.net/kml/2.2");
+                if (isLight) {
+                    XmlElement xname = xmlVer.CreateElement("name");
 
-            JToken jfts = o["features"];
-            XmlDocument xmlVer = new XmlDocument();
-            XmlDeclaration xd1 = xmlVer.CreateXmlDeclaration("1.0", "UTF-8", null);//这一句还是必须有的
-            XmlElement rootElt = xmlVer.CreateElement("kml", "http://www.opengis.net/kml/2.2");
-            if (isLight) {
-                XmlElement xname = xmlVer.CreateElement("name");
+                    XmlElement xdesc = xmlVer.CreateElement("description");
+                    XmlElement xopen = xmlVer.CreateElement("open");
+                    xopen.InnerText = "";
+                    xname.InnerText = "";
+                    xdesc.InnerText = "";
+                    XmlElement xdoc = xmlVer.CreateElement("Document");
+                    xdoc.AppendChild(xname);
+                    xdoc.AppendChild(xopen);
+                    xdoc.AppendChild(xdesc);
 
-                XmlElement xdesc = xmlVer.CreateElement("description");
-                XmlElement xopen = xmlVer.CreateElement("open");
-                xopen.InnerText = "";
-                xname.InnerText = "";
-                xdesc.InnerText = "";
-                XmlElement xdoc = xmlVer.CreateElement("Document");
-                xdoc.AppendChild(xname);
-                xdoc.AppendChild(xopen);
-                xdoc.AppendChild(xdesc);
+                    List<JToken> jlst = jfts.ToList();
+                    int jlen = jlst.Count;
 
-                List<JToken> jlst = jfts.ToList<JToken>();
-                int jlen = jlst.Count;
+                    for (int i = 0; i < jlen; i++) {
 
-                for (int i = 0; i < jlen; i++) {
-                    // prop的处理
-                    string jt1 = (string)jlst[i]["geometry"]["type"];
-                    if (jt1 == "Point") {
-                        XmlElement xcoord1 = xmlVer.CreateElement("coordinates");
-                        Array al1 = jlst[i]["geometry"]["coordinates"].ToArray();
-                        xcoord1.InnerText = coordPoint(al1);
-                        XmlElement xpoi1 = xmlVer.CreateElement("Point");
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        xpoi1.AppendChild(xcoord1);
-                        xpmk1.AppendChild(xpoi1);
-                        xdoc.AppendChild(xpmk1);//不加文件夹封装
-                    }
-                    else if (jt1 == "MultiPoint") {
-                        Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();
-                        List<string> jstlst = coordMultiPoint(arr1);
-                        XmlElement xmugeo1 = xmlVer.CreateElement("MultiGeometry");
-                        for (int kw = 0; kw < jstlst.Count; kw++) {
+                        string jt1 = (string)jlst[i]["geometry"]["type"];
+                        if (jt1 == "Point") {
                             XmlElement xcoord1 = xmlVer.CreateElement("coordinates");
-                            xcoord1.InnerText = jstlst[kw];
+                            Array al1 = jlst[i]["geometry"]["coordinates"].ToArray();
+                            xcoord1.InnerText = coordPoint(al1);
                             XmlElement xpoi1 = xmlVer.CreateElement("Point");
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            JToken gprop = jlst[i]["properties"];
+                            xpmk1.AppendChild(xExtendData(xmlVer, gprop));
                             xpoi1.AppendChild(xcoord1);
-                            xmugeo1.AppendChild(xpoi1);
+                            xpmk1.AppendChild(xpoi1);
+                            xdoc.AppendChild(xpmk1);//不加文件夹封装
                         }
+                        else if (jt1 == "MultiPoint") {
+                            Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();
+                            List<string> jstlst = coordMultiPoint(arr1);
+                            XmlElement xmugeo1 = xmlVer.CreateElement("MultiGeometry");
+                            for (int kw = 0; kw < jstlst.Count; kw++) {
+                                XmlElement xcoord1 = xmlVer.CreateElement("coordinates");
+                                xcoord1.InnerText = jstlst[kw];
+                                XmlElement xpoi1 = xmlVer.CreateElement("Point");
+                                xpoi1.AppendChild(xcoord1);
+                                xmugeo1.AppendChild(xpoi1);
+                            }
 
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        XmlElement xtd1 = xmlVer.CreateElement("ExtendedData");
-                        xtd1.InnerText = "";
-                        xpmk1.AppendChild(xtd1);
-                        xpmk1.AppendChild(xmugeo1);
-                        xdoc.AppendChild(xpmk1);
-                    }
-                    else if (jt1 == "LineString") {
-                        Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();
-                        XmlElement xline = xmlVer.CreateElement("LineString");
-                        XmlElement xcoord1 = xmlVer.CreateElement("coordinates");
-                        xcoord1.InnerText = coordMLineTostr(arr1);
-
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        XmlElement xtd1 = xmlVer.CreateElement("ExtendedData");
-                        xtd1.InnerText = " ";
-                        xpmk1.AppendChild(xtd1);
-                        xline.AppendChild(xcoord1);
-                        xpmk1.AppendChild(xline);
-                        xdoc.AppendChild(xpmk1);
-                    }
-                    else if (jt1 == "MultiLineString") {
-                        Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray(); //对应三维数组
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        XmlElement xtd1 = xmlVer.CreateElement("ExtendedData");
-                        xtd1.InnerText = "";
-                        xpmk1.AppendChild(xtd1);
-                        XmlElement mlgeo = xmlVer.CreateElement("MultiGeometry");
-                        for (int j = 0; j < arr1.Length; j++) {
-
-                            JArray arrT = (JArray)arr1.GetValue(j);//“二维”列表，每一个子元素是一个点
-                            Array b2 = arrT.ToArray();
-                            XmlElement xcdnt = xmlVer.CreateElement("coordinates");
-                            xcdnt.InnerText = coordMLineTostr(b2);
-                            XmlElement xmline = xmlVer.CreateElement("LineString");
-                            xmline.AppendChild(xcdnt);
-                            mlgeo.AppendChild(xmline);
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            
+                            JToken gprop = jlst[i]["properties"];
+                            XmlElement xtd = xExtendData(xmlVer,gprop);//ExtendedData
+                            xpmk1.AppendChild(xtd);
+                            xpmk1.AppendChild(xmugeo1);
+                            xdoc.AppendChild(xpmk1);
                         }
-                        xpmk1.AppendChild(mlgeo);
-                        xdoc.AppendChild(xpmk1);
-                    }
-                    else if (jt1 == "Polygon") {
-                        Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();//三维数组
+                        else if (jt1 == "LineString") {
+                            Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();
+                            XmlElement xline = xmlVer.CreateElement("LineString");
+                            XmlElement xcoord1 = xmlVer.CreateElement("coordinates");
+                            xcoord1.InnerText = coordMLineTostr(arr1);
 
-                        XmlElement xpoly = coordPolyToXEM(xmlVer, arr1);//
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        XmlElement xtd1 = xmlVer.CreateElement("ExtendedData");
-                        xtd1.InnerText = "";
-                        xpmk1.AppendChild(xtd1);
-                        xpmk1.AppendChild(xpoly);
-                        xdoc.AppendChild(xpmk1);
-                    }
-                    else if (jt1 == "MultiPolygon") {
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        XmlElement xtd1 = xmlVer.CreateElement("ExtendedData");
-                        xtd1.InnerText = "";
-                        xpmk1.AppendChild(xtd1);
-                        XmlElement xmulgeo = xmlVer.CreateElement("MultiGeometry");
-                        Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();//四维数组
-                        for (int mk = 0; mk < arr1.Length; mk++) {
-                            JArray jarr = (JArray)arr1.GetValue(mk);
-                            //List<JToken> b = arrT.ToList<JToken>(); //“二维”列表，每一个子元素是一个点
-                            Array b2 = jarr.ToArray();
-                            XmlElement xpolyw = coordPolyToXEM(xmlVer, b2);
-                            xmulgeo.AppendChild(xpolyw);
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            JToken gprop = jlst[i]["properties"];
+                            xpmk1.AppendChild(xExtendData(xmlVer, gprop));
+                            xline.AppendChild(xcoord1);
+                            xpmk1.AppendChild(xline);
+                            xdoc.AppendChild(xpmk1);
                         }
-                        xpmk1.AppendChild(xmulgeo);
-                        xdoc.AppendChild(xpmk1);
-                    }
-                    else if (jt1 == "GeometryCollection") {
+                        else if (jt1 == "MultiLineString") {
+                            Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray(); //对应三维数组
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            JToken gprop = jlst[i]["properties"];
+                            xpmk1.AppendChild(xExtendData(xmlVer, gprop));
+                            XmlElement mlgeo = xmlVer.CreateElement("MultiGeometry");
+                            for (int j = 0; j < arr1.Length; j++) {
+
+                                JArray arrT = (JArray)arr1.GetValue(j);//“二维”列表，每一个子元素是一个点
+                                Array b2 = arrT.ToArray();
+                                XmlElement xcdnt = xmlVer.CreateElement("coordinates");
+                                xcdnt.InnerText = coordMLineTostr(b2);
+                                XmlElement xmline = xmlVer.CreateElement("LineString");
+                                xmline.AppendChild(xcdnt);
+                                mlgeo.AppendChild(xmline);
+                            }
+                            xpmk1.AppendChild(mlgeo);
+                            xdoc.AppendChild(xpmk1);
+                        }
+                        else if (jt1 == "Polygon") {
+                            Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();//三维数组
+
+                            XmlElement xpoly = coordPolyToXEM(xmlVer, arr1);//
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            JToken gprop = jlst[i]["properties"];
+                            xpmk1.AppendChild(xExtendData(xmlVer, gprop));
+                            xpmk1.AppendChild(xpoly);
+                            xdoc.AppendChild(xpmk1);
+                        }
+                        else if (jt1 == "MultiPolygon") {
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            JToken gprop = jlst[i]["properties"];
+                            xpmk1.AppendChild(xExtendData(xmlVer, gprop));
+                            XmlElement xmulgeo = xmlVer.CreateElement("MultiGeometry");
+                            Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();//四维数组
+                            for (int mk = 0; mk < arr1.Length; mk++) {
+                                JArray jarr = (JArray)arr1.GetValue(mk);
+                                //List<JToken> b = arrT.ToList<JToken>(); //“二维”列表，每一个子元素是一个点
+                                Array b2 = jarr.ToArray();
+                                XmlElement xpolyw = coordPolyToXEM(xmlVer, b2);
+                                xmulgeo.AppendChild(xpolyw);
+                            }
+                            xpmk1.AppendChild(xmulgeo);
+                            xdoc.AppendChild(xpmk1);
+                        }
+                        else if (jt1 == "GeometryCollection") {
 
 
+                        }
+                        else {
+                            Console.Write("there something err");
+                        }
+                        
+
+
+
                     }
-                    else {
-                        Console.Write("there something err");
-                    }
+
+                    rootElt.AppendChild(xdoc);
+                    xmlVer.AppendChild(xd1);
+                    xmlVer.AppendChild(rootElt);
+                    xmlVer.Save(outputFile);
+                    infoLabel.Text = "geojson转kml完成";
+
                 }
+                else {
+                    XmlElement xname = xmlVer.CreateElement("name");
 
-                rootElt.AppendChild(xdoc);
-                xmlVer.AppendChild(xd1);
-                xmlVer.AppendChild(rootElt);
-                xmlVer.Save(outputFile);
-                infoLabel.Text = "geojson转kml完成";
+                    XmlElement xdesc = xmlVer.CreateElement("description");
+                    XmlElement xopen = xmlVer.CreateElement("open");
+                    xopen.InnerText = "";
+                    xname.InnerText = "";
+                    xdesc.InnerText = "";
+                    XmlElement xdoc = xmlVer.CreateElement("Document");
+                    xdoc.AppendChild(xname);
+                    xdoc.AppendChild(xopen);
+                    xdoc.AppendChild(xdesc);
 
+                    List<JToken> jlst = jfts.ToList<JToken>();
+                    int jlen = jlst.Count;
+
+                    for (int i = 0; i < jlen; i++) {
+                        // prop的处理
+                        string jt1 = (string)jlst[i]["geometry"]["type"];
+                        if (jt1 == "Point") {
+                            XmlElement xcoord1 = xmlVer.CreateElement("coordinates");
+                            Array al1 = jlst[i]["geometry"]["coordinates"].ToArray();
+                            xcoord1.InnerText = coordPoint(al1);
+                            XmlElement xpoi1 = xmlVer.CreateElement("Point");
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            JToken gprop = jlst[i]["properties"];
+                            xpmk1.AppendChild(xExtendData(xmlVer, gprop));
+                            xpoi1.AppendChild(xcoord1);
+                            xpmk1.AppendChild(xpoi1);
+                            xdoc.AppendChild(xpmk1);//不加文件夹封装
+                        }
+                        else if (jt1 == "MultiPoint") {
+                            Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();
+                            List<string> jstlst = coordMultiPoint(arr1);
+                            XmlElement xmugeo1 = xmlVer.CreateElement("MultiGeometry");
+                            for (int kw = 0; kw < jstlst.Count; kw++) {
+                                XmlElement xcoord1 = xmlVer.CreateElement("coordinates");
+                                xcoord1.InnerText = jstlst[kw];
+                                XmlElement xpoi1 = xmlVer.CreateElement("Point");
+                                xpoi1.AppendChild(xcoord1);
+                                xmugeo1.AppendChild(xpoi1);
+                            }
+
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            JToken gprop = jlst[i]["properties"];
+                            xpmk1.AppendChild(xExtendData(xmlVer, gprop));
+                            xpmk1.AppendChild(xmugeo1);
+                            xdoc.AppendChild(xpmk1);
+                        }
+                        else if (jt1 == "LineString") {
+                            Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();
+                            XmlElement xline = xmlVer.CreateElement("LineString");
+                            XmlElement xcoord1 = xmlVer.CreateElement("coordinates");
+                            xcoord1.InnerText = coordMLineTostr(arr1);
+
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            JToken gprop = jlst[i]["properties"];
+                            xpmk1.AppendChild(xExtendData(xmlVer, gprop));
+                            xline.AppendChild(xcoord1);
+                            xpmk1.AppendChild(xline);
+                            xdoc.AppendChild(xpmk1);
+                        }
+                        else if (jt1 == "MultiLineString") {
+                            Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray(); //对应三维数组
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            JToken gprop = jlst[i]["properties"];
+                            xpmk1.AppendChild(xExtendData(xmlVer, gprop));
+                            XmlElement mlgeo = xmlVer.CreateElement("MultiGeometry");
+                            for (int j = 0; j < arr1.Length; j++) {
+
+                                JArray arrT = (JArray)arr1.GetValue(j);//“二维”列表，每一个子元素是一个点
+                                Array b2 = arrT.ToArray();
+                                XmlElement xcdnt = xmlVer.CreateElement("coordinates");
+                                xcdnt.InnerText = coordMLineTostr(b2);
+                                XmlElement xmline = xmlVer.CreateElement("LineString");
+                                xmline.AppendChild(xcdnt);
+                                mlgeo.AppendChild(xmline);
+                            }
+                            xpmk1.AppendChild(mlgeo);
+                            xdoc.AppendChild(xpmk1);
+                        }
+                        else if (jt1 == "Polygon") {
+                            Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();//三维数组
+
+                            XmlElement xpoly = coordPolyToXEM(xmlVer, arr1);//
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            JToken gprop = jlst[i]["properties"];
+                            xpmk1.AppendChild(xExtendData(xmlVer, gprop));
+                            xpmk1.AppendChild(xpoly);
+                            xdoc.AppendChild(xpmk1);
+                        }
+                        else if (jt1 == "MultiPolygon") {
+                            XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
+                            JToken gprop = jlst[i]["properties"];
+                            xpmk1.AppendChild(xExtendData(xmlVer, gprop));
+                            XmlElement xmulgeo = xmlVer.CreateElement("MultiGeometry");
+                            Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();//四维数组
+                            for (int mk = 0; mk < arr1.Length; mk++) {
+                                JArray jarr = (JArray)arr1.GetValue(mk);
+                                //List<JToken> b = arrT.ToList<JToken>(); //“二维”列表，每一个子元素是一个点
+                                Array b2 = jarr.ToArray();
+                                XmlElement xpolyw = coordPolyToXEM(xmlVer, b2);
+                                xmulgeo.AppendChild(xpolyw);
+                            }
+                            xpmk1.AppendChild(xmulgeo);
+                            xdoc.AppendChild(xpmk1);
+                        }
+                        else if (jt1 == "GeometryCollection") {
+
+
+                        }
+                        else {
+                            Console.Write("there something err");
+                        }
+                    }
+                    XmlElement xfold = xmlVer.CreateElement("Folder");
+                    xfold.AppendChild(xdoc);
+                    rootElt.AppendChild(xfold);
+                    xmlVer.AppendChild(xd1);
+                    xmlVer.AppendChild(rootElt);
+                    xmlVer.Save(outputFile);
+                    infoLabel.Text = "output at:" + outputFile;
+                }
+            }catch(JsonReaderException jexp) {
+                MessageBox.Show("输入文件类型不是合理的geojson文件，请更改输入文件!");
             }
-            else {
-                XmlElement xname = xmlVer.CreateElement("name");
-
-                XmlElement xdesc = xmlVer.CreateElement("description");
-                XmlElement xopen = xmlVer.CreateElement("open");
-                xopen.InnerText = "";
-                xname.InnerText = "";
-                xdesc.InnerText = "";
-                XmlElement xdoc = xmlVer.CreateElement("Document");
-                xdoc.AppendChild(xname);
-                xdoc.AppendChild(xopen);
-                xdoc.AppendChild(xdesc);
-
-                List<JToken> jlst = jfts.ToList<JToken>();
-                int jlen = jlst.Count;
-
-                for (int i = 0; i < jlen; i++) {
-                    // prop的处理
-                    string jt1 = (string)jlst[i]["geometry"]["type"];
-                    if (jt1 == "Point") {
-                        XmlElement xcoord1 = xmlVer.CreateElement("coordinates");
-                        Array al1 = jlst[i]["geometry"]["coordinates"].ToArray();
-                        xcoord1.InnerText = coordPoint(al1);
-                        XmlElement xpoi1 = xmlVer.CreateElement("Point");
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        xpoi1.AppendChild(xcoord1);
-                        xpmk1.AppendChild(xpoi1);
-                        xdoc.AppendChild(xpmk1);//不加文件夹封装
-                    }
-                    else if (jt1 == "MultiPoint") {
-                        Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();
-                        List<string> jstlst = coordMultiPoint(arr1);
-                        XmlElement xmugeo1 = xmlVer.CreateElement("MultiGeometry");
-                        for (int kw = 0; kw < jstlst.Count; kw++) {
-                            XmlElement xcoord1 = xmlVer.CreateElement("coordinates");
-                            xcoord1.InnerText = jstlst[kw];
-                            XmlElement xpoi1 = xmlVer.CreateElement("Point");
-                            xpoi1.AppendChild(xcoord1);
-                            xmugeo1.AppendChild(xpoi1);
-                        }
-
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        XmlElement xtd1 = xmlVer.CreateElement("ExtendedData");
-                        xtd1.InnerText = "";
-                        xpmk1.AppendChild(xtd1);
-                        xpmk1.AppendChild(xmugeo1);
-                        xdoc.AppendChild(xpmk1);
-                    }
-                    else if (jt1 == "LineString") {
-                        Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();
-                        XmlElement xline = xmlVer.CreateElement("LineString");
-                        XmlElement xcoord1 = xmlVer.CreateElement("coordinates");
-                        xcoord1.InnerText = coordMLineTostr(arr1);
-
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        XmlElement xtd1 = xmlVer.CreateElement("ExtendedData");
-                        xtd1.InnerText = " ";
-                        xpmk1.AppendChild(xtd1);
-                        xline.AppendChild(xcoord1);
-                        xpmk1.AppendChild(xline);
-                        xdoc.AppendChild(xpmk1);
-                    }
-                    else if (jt1 == "MultiLineString") {
-                        Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray(); //对应三维数组
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        XmlElement xtd1 = xmlVer.CreateElement("ExtendedData");
-                        xtd1.InnerText = "";
-                        xpmk1.AppendChild(xtd1);
-                        XmlElement mlgeo = xmlVer.CreateElement("MultiGeometry");
-                        for (int j = 0; j < arr1.Length; j++) {
-
-                            JArray arrT = (JArray)arr1.GetValue(j);//“二维”列表，每一个子元素是一个点
-                            Array b2 = arrT.ToArray();
-                            XmlElement xcdnt = xmlVer.CreateElement("coordinates");
-                            xcdnt.InnerText = coordMLineTostr(b2);
-                            XmlElement xmline = xmlVer.CreateElement("LineString");
-                            xmline.AppendChild(xcdnt);
-                            mlgeo.AppendChild(xmline);
-                        }
-                        xpmk1.AppendChild(mlgeo);
-                        xdoc.AppendChild(xpmk1);
-                    }
-                    else if (jt1 == "Polygon") {
-                        Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();//三维数组
-
-                        XmlElement xpoly = coordPolyToXEM(xmlVer, arr1);//
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        XmlElement xtd1 = xmlVer.CreateElement("ExtendedData");
-                        xtd1.InnerText = "";
-                        xpmk1.AppendChild(xtd1);
-                        xpmk1.AppendChild(xpoly);
-                        xdoc.AppendChild(xpmk1);
-                    }
-                    else if (jt1 == "MultiPolygon") {
-                        XmlElement xpmk1 = xmlVer.CreateElement("Placemark");
-                        XmlElement xtd1 = xmlVer.CreateElement("ExtendedData");
-                        xtd1.InnerText = "";
-                        xpmk1.AppendChild(xtd1);
-                        XmlElement xmulgeo = xmlVer.CreateElement("MultiGeometry");
-                        Array arr1 = jlst[i]["geometry"]["coordinates"].ToArray();//四维数组
-                        for (int mk = 0; mk < arr1.Length; mk++) {
-                            JArray jarr = (JArray)arr1.GetValue(mk);
-                            //List<JToken> b = arrT.ToList<JToken>(); //“二维”列表，每一个子元素是一个点
-                            Array b2 = jarr.ToArray();
-                            XmlElement xpolyw = coordPolyToXEM(xmlVer, b2);
-                            xmulgeo.AppendChild(xpolyw);
-                        }
-                        xpmk1.AppendChild(xmulgeo);
-                        xdoc.AppendChild(xpmk1);
-                    }
-                    else if (jt1 == "GeometryCollection") {
-
-
-                    }
-                    else {
-                        Console.Write("there something err");
-                    }
-                }
-
-                rootElt.AppendChild(xdoc);
-                xmlVer.AppendChild(xd1);
-                xmlVer.AppendChild(rootElt);
-                xmlVer.Save(outputFile);
-                infoLabel.Text = "output at:" + outputFile;
+            catch (Exception exp) {
+                MessageBox.Show(exp.Message);
             }
         }
 
@@ -748,6 +755,30 @@ namespace GeojsonToKml {
 
         #region 辅助解析函数
         /// <summary>
+        /// 构造 ExtendedData
+        /// </summary>
+        /// <param name="xmlVers"></param>
+        /// <param name="gprop"></param>
+        /// <returns></returns>
+        public XmlElement xExtendData (XmlDocument xmlVers, JToken gprop) {
+            XmlElement xtd = xmlVers.CreateElement("ExtendedData");
+            if (gprop.HasValues) {
+                var b1 = gprop.Count();
+                for (int gk = 0; gk < b1; gk++) {
+                    JProperty jpeo = (JProperty)gprop.ElementAt(gk);
+                    XmlElement xdata = xmlVers.CreateElement("Data");
+                    xdata.SetAttribute("name", jpeo.Name);
+                    xdata.InnerText = jpeo.Value.ToString();//这一步可以对jpeo.Value作进一步处理
+                    xtd.AppendChild(xdata);
+                }
+            }else {
+                xtd.InnerText = "";
+            }
+            return xtd;
+        }
+
+
+        /// <summary>
         /// 多边形压制为xml元素
         /// </summary>
         /// <param name="xdc"></param>
@@ -756,7 +787,6 @@ namespace GeojsonToKml {
         public XmlElement coordPolyToXEM (XmlDocument xdc, Array arrw) {
             //输入为3维数组
             XmlElement xpoly = xdc.CreateElement("Polygon");
-
             int arrlen = arrw.Length;
             for (int i = 0; i < arrlen; i++) {
                 XmlElement xbndary = xdc.CreateElement("innerBoundaryIs");
@@ -862,7 +892,6 @@ namespace GeojsonToKml {
                 infoLabel.Text = exp.Message;
                 return new double[5] { 0, 0, 0, 0, 0 };//这一步有一定的隐患
             }
-            
         }
 
         /// <summary>
@@ -885,19 +914,14 @@ namespace GeojsonToKml {
         public JArray strToTribLst (string coor) {
             return new JArray();
         }
-
-
+        
         // 传入jpoi和jcoor生成一个JFeature k2j用
         public JObject createJFea (JProperty jpoint, JProperty jcoor) {
             JProperty jgmt = new JProperty("geometry", new JObject(jpoint, jcoor));
             JProperty jprop = new JProperty("properties", new JObject());
             return new JObject(new JProperty("type", "Feature"), jprop, jgmt); ;
         }
-
-
-
-
-
+        
         #endregion
 
         #region 转换方式的选择与更改
@@ -908,7 +932,6 @@ namespace GeojsonToKml {
                 oFTypeIndex =0;//默认情况
             }
         }
-
         private void k2jsonRBtn_CheckedChanged (object sender, EventArgs e) {
             if (k2jsonRBtn.Checked) {
                 convType = 2;
@@ -916,7 +939,6 @@ namespace GeojsonToKml {
                 oFTypeIndex = 1;
             }
         }
-
         private void j2csvRBtn_CheckedChanged (object sender, EventArgs e) {
             if (j2csvRBtn.Checked) {
                 convType = 3;
@@ -924,7 +946,6 @@ namespace GeojsonToKml {
                 oFTypeIndex = 2;
             }
         }
-
         private void c2jsonRBtn_CheckedChanged (object sender, EventArgs e) {
             if (c2jsonRBtn.Checked) {
                 convType = 4;
@@ -932,7 +953,6 @@ namespace GeojsonToKml {
                 oFTypeIndex = 1;
             }
         }
-
         private void k2csvRBtn_CheckedChanged (object sender, EventArgs e) {
             if (k2csvRBtn.Checked) {
                 convType = 5;
@@ -940,7 +960,6 @@ namespace GeojsonToKml {
                 oFTypeIndex = 2;
             }
         }
-
         private void c2kmlRBtn_CheckedChanged (object sender, EventArgs e) {
             if (c2kmlRBtn.Checked) {
                 convType = 6;
@@ -948,7 +967,6 @@ namespace GeojsonToKml {
                 oFTypeIndex = 0;
             }
         }
-
         private void lightcBox_CheckedChanged (object sender, EventArgs e) {
             if (lightcBox.Checked) {
                 isLightWconvert = true;
