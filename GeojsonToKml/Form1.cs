@@ -94,6 +94,7 @@ namespace GeojsonToKml {
                 StreamReader sr = new StreamReader(inputFile, Encoding.UTF8);
                 JObject o = JObject.Parse(sr.ReadToEnd());
                 JToken jfts = o["features"];
+                
                 XmlDocument xmlVer = new XmlDocument();
                 XmlDeclaration xd1 = xmlVer.CreateXmlDeclaration("1.0", "UTF-8", null);//这一句还是必须有的
                 XmlElement rootElt = xmlVer.CreateElement("kml", "http://www.opengis.net/kml/2.2");
@@ -110,10 +111,10 @@ namespace GeojsonToKml {
                     xdoc.AppendChild(xopen);
                     xdoc.AppendChild(xdesc);
 
-                    List<JToken> jlst = jfts.ToList();
-                    int jlen = jlst.Count;
-
-                    for (int i = 0; i < jlen; i++) {
+                    List<JToken> jlst = jtokenObjToJlist(jfts,o);
+                    //处理GeometryCollection 类型的数据
+                    
+                    for (int i = 0; i < jlst.Count; i++) {
 
                         string jt1 = (string)jlst[i]["geometry"]["type"];
                         if (jt1 == "Point") {
@@ -239,10 +240,8 @@ namespace GeojsonToKml {
                     xdoc.AppendChild(xopen);
                     xdoc.AppendChild(xdesc);
 
-                    List<JToken> jlst = jfts.ToList<JToken>();
-                    int jlen = jlst.Count;
-
-                    for (int i = 0; i < jlen; i++) {
+                    List<JToken> jlst = jtokenObjToJlist(jfts, o);
+                    for (int i = 0; i < jlst.Count; i++) {
                         // prop的处理
                         string jt1 = (string)jlst[i]["geometry"]["type"];
                         if (jt1 == "Point") {
@@ -349,7 +348,7 @@ namespace GeojsonToKml {
                     xmlVer.Save(outputFile);
                     infoLabel.Text = "output at:" + outputFile;
                 }
-            }catch(JsonReaderException jexp) {
+            }catch(JsonReaderException) {
                 MessageBox.Show("输入文件类型不是合理的geojson文件，请更改输入文件!");
             }
             catch (Exception exp) {
@@ -804,6 +803,25 @@ namespace GeojsonToKml {
                 xpoly.AppendChild(xbndary);
             }
             return xpoly;
+        }
+
+        //根据jtoken生成 List<JToken>
+        public List<JToken> jtokenObjToJlist (JToken jfts, JObject obj) {
+            List<JToken> jlst = new List<JToken>();
+            if (jfts == null) { //(string)o["type"]== "GeometryCollection") 
+                JToken jgts = obj["geometries"];
+                foreach (JToken jk in jgts) {
+                    JProperty jprty = new JProperty("properties", new JObject());
+                    JObject jet = new JObject(jprty, new JProperty("geometry", jk));
+                    JToken jw = jet;
+                    jlst.Add(jw);
+                }
+                return jlst;
+            }
+            else {
+                return jfts.ToList();
+            }
+
         }
 
         /// <summary>
