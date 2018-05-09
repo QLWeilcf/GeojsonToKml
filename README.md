@@ -87,4 +87,7 @@ kml与csv的互相转换的思路和geojson与csv互转换的思路一致，对�
 - [geojson.io](http://geojson.io/#map=2/20.0/0.0)
 
 
+#### to do
+- [ ] 完善GeometryCollection和FeatureCollection的区别
+
 
