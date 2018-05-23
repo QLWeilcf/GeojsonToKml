@@ -1,7 +1,7 @@
 # GeojsonToKml
 geojson convert to kml and kml to geojson ,kml to csv csv to geojson
 
-基于C#开发的geojson、kml、csv转换工具。
+基于C#开发的geojson、kml、csv互转换工具。
 
 
 **界面**
@@ -88,6 +88,6 @@ kml与csv的互相转换的思路和geojson与csv互转换的思路一致，对�
 
 
 #### to do
-- [ ] 完善GeometryCollection和FeatureCollection的区别
-
+- [x] 完善GeometryCollection和FeatureCollection的区别
+- [ ] 增加对shp的支持
 
